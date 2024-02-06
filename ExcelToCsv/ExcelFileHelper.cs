@@ -59,6 +59,7 @@ namespace ExcelToCsv
         public static bool SaveAsCsv(Stream fileStream)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            var unicodeEncoding = Encoding.GetEncoding("utf-8");
 
             //using (var stream = new FileStream(excelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
@@ -76,7 +77,7 @@ namespace ExcelToCsv
                 if (reader == null)
                     return false;
 
-                
+
                 var ds = reader.AsDataSet(new ExcelDataSetConfiguration()
                 {
                     ConfigureDataTable = (tableReader) => new ExcelDataTableConfiguration()
@@ -92,14 +93,19 @@ namespace ExcelToCsv
                     var arr = new List<string>();
                     for (int i = 0; i < ds.Tables[0].Columns.Count; i++)
                     {
-                        arr.Add(ds.Tables[0].Rows[row_no][i].ToString());
+                        var originalData = ds.Tables[0].Rows[row_no][i].ToString();
+                        var data = originalData?.Replace("\"", "\"\"").Trim();
+                        arr.Add(String.Format("\"{0}\"", data??string.Empty));
                     }
                     row_no++;
                     csvContent += string.Join(",", arr) + "\n";
                 }
-                //StreamWriter csv = new StreamWriter(destinationCsvFilePath, false);
-                //csv.Write(csvContent);
-                //csv.Close();
+
+
+                var destinationCsvFilePath = Path.Combine(Environment.CurrentDirectory, "Customers.csv");
+                StreamWriter csv = new StreamWriter(destinationCsvFilePath, false, unicodeEncoding);
+                csv.Write(csvContent);
+                csv.Close();
                 return true;
             }
         }
